@@ -1,0 +1,12 @@
+{
+  "appName": "Strasrer",
+  "appVersion": "0.1.0",
+  "dataDir": "data",
+  "database": {
+    "name": "",
+    "host": "",
+    "port": "",
+    "user": "",
+    "pass": ""
+  }
+}
