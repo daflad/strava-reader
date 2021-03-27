@@ -2,27 +2,27 @@ package models
 
 import (
 	"fmt"
-	"log"
-	"strconv"
 	"strings"
 	"time"
 )
 
 // RideStats compiled for a given strave json file
 type RideStats struct {
-	RideName string
-	Activity string
-	RideDate string
-	RideTime time.Duration
-	Duration time.Duration
-	Distance float64
-	AvgSpeed float64
-	AvgHrtRt float64
-	FlatRide float64
-	HillRide float64
-	DownHill float64
-	ElevGain float64
-	ElevLoss float64
+	RideName  string
+	Activity  string
+	RideDate  string
+	RideTime  time.Duration
+	Duration  time.Duration
+	Distance  float64
+	AvgSpeed  float64
+	AvgHrtRt  float64
+	FlatRide  float64
+	HillRide  float64
+	DownHill  float64
+	ElevGain  float64
+	ElevLoss  float64
+	Elevation []float64
+	Distances []float64
 }
 
 // RideStatsFromStrava build from json
@@ -30,15 +30,9 @@ func RideStatsFromStrava(s Strava) (re RideStats) {
 	re.RideName = s.Name
 	re.Activity = strings.Title(s.Metadata.ActivityType)
 	re.RideDate = s.Metadata.StartDate.Format("Monday, January 2, 2006 @ 15:04:05")
-	var err error
-	re.RideTime, err = time.ParseDuration(strconv.Itoa(s.Metadata.ElapsedTime) + "s")
-	if err != nil {
-		log.Println(err)
-	}
-	re.Duration, err = time.ParseDuration(strconv.Itoa(s.Metadata.TimerTime) + "s")
-	if err != nil {
-		log.Println(err)
-	}
+	nanosecond := 1000000000
+	re.RideTime = time.Duration(s.Metadata.ElapsedTime * nanosecond)
+	re.Duration = time.Duration(s.Metadata.TimerTime * nanosecond)
 	re.Distance = km2miles(s.Metadata.OverrideDistance)
 	re.AvgSpeed = re.Distance / float64(re.Duration.Seconds()/60.0/60.0)
 	re.AvgHrtRt = 0.0
@@ -53,6 +47,7 @@ func RideStatsFromStrava(s Strava) (re RideStats) {
 	re.FlatRide = 0.0
 	lastEl := 0.0
 	lastDist := 0.0
+	c := 0
 	for i, el := range s.Data[0].Values {
 		ele := el[2].(float64)
 		dist := el[8].(float64)
@@ -66,6 +61,27 @@ func RideStatsFromStrava(s Strava) (re RideStats) {
 			} else {
 				re.FlatRide += dist - lastDist
 			}
+		}
+		if ele != lastEl {
+			// window := 20
+			// if i > window && i < len(s.Data[0].Values)-window {
+			// 	fnd := false
+			// 	for _, it := range s.Data[0].Values[i-window : i+window] {
+			// 		nextEl := it[2].(float64)
+			// 		log.Println(ele, nextEl, math.Abs(ele-nextEl)/nextEl)
+			// 		if math.Abs(ele-nextEl)/nextEl > 0.15 {
+			// 			fnd = true
+			// 		}
+			// 	}
+			// 	if !fnd {
+			// 		re.Elevation = append(re.Elevation, ele)
+			// 		re.Distances = append(re.Distances, float64(c))
+			// 	}
+			// } else {
+			re.Elevation = append(re.Elevation, ele)
+			re.Distances = append(re.Distances, float64(c))
+			// }
+			c++
 		}
 		lastEl = ele
 		lastDist = dist
